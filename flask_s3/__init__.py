@@ -295,7 +295,6 @@ def _write_files(s3, app, static_url_loc, static_folder, files, bucket,
                 s3.put_object(Bucket=bucket,
                               Key=key_name,
                               Body=data,
-                              ACL="public-read",
                               Metadata=metadata,
                               **params)
 
@@ -329,7 +328,7 @@ def get_setting(name, app=None):
 
 def create_all(app, user=None, password=None, bucket_name=None,
                location=None, include_hidden=False,
-               filepath_filter_regex=None, put_bucket_acl=True):
+               filepath_filter_regex=None, put_bucket_acl=False):
     """
     Uploads of the static assets associated with a Flask application to
     Amazon S3.
@@ -386,8 +385,8 @@ def create_all(app, user=None, password=None, bucket_name=None,
         store, set to r'^css'.
     :type filepath_filter_regex: `basestring` or None
 
-    :param put_bucket_acl: by default Flask-S3 will set the bucket ACL
-        to public. Set this to false to leave the policy unchanged.
+    :param put_bucket_acl: by default Flask-S3 will not touch the bucket
+        ACL. Set this to true to set the ACL to public-read.
     :type put_bucket_acl: `bool`
 
     .. _bucket restrictions: http://docs.amazonwebservices.com/AmazonS3\
@@ -396,12 +395,6 @@ def create_all(app, user=None, password=None, bucket_name=None,
     """
     user = user or app.config.get('AWS_ACCESS_KEY_ID')
     password = password or app.config.get('AWS_SECRET_ACCESS_KEY')
-
-    if not user:
-        raise ValueError("you must set 'user' or 'AWS_ACCESS_KEY_ID'")
-
-    if not password:
-        raise ValueError("you must set 'password' or 'AWS_SECRET_ACCESS_KEY'")
 
     bucket_name = bucket_name or app.config.get('FLASKS3_BUCKET_NAME')
     if not bucket_name:
@@ -416,10 +409,10 @@ def create_all(app, user=None, password=None, bucket_name=None,
 
     # connect to s3
     s3 = boto3.client("s3",
-                      endpoint_url=endpoint_url,
+                      endpoint_url=endpoint_url or None,
                       region_name=location or None,
-                      aws_access_key_id=user,
-                      aws_secret_access_key=password)
+                      aws_access_key_id=user or None,
+                      aws_secret_access_key=password or None)
 
     # get_or_create bucket
     try:
